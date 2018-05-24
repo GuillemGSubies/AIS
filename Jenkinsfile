@@ -1,12 +1,33 @@
 node {
-	stage 'Checkout'
-		checkout scm
+	checkout scm
 
-	stage 'Build'
-		bat 'nuget restore SolutionName.sln'
-		bat "\"${tool 'MSBuild'}\" SolutionName.sln /p:Configuration=Release /p:Platform=\"Any CPU\" /p:ProductVersion=1.0.0.${env.BUILD_NUMBER}"
-
-	stage 'Archive'
-		archive 'ProjectName/bin/Release/**'
-
+	pipeline {
+    	tools {
+        	maven "M3"
+    	}
+    	agent any
+    	stages {
+       		stage("Preparation") {
+            	steps {
+                	git 'https://github.com/GuillemGSubies/AIS.git'
+            	}
+       		}
+       		stage("Test") {
+          		steps {
+            		script {
+                		if(isUnix()) {
+                    		sh "mvn test"
+                		} else {
+                    		bat(/${M2_HOME}\bin\mvn -f pom.xml test/)
+                		}
+            		}
+          		}
+        	}
+     	}
+     	post {
+        	always {
+            	junit "./**/target/surefire-reports/TEST-*.xml"
+        	}
+     	}
+  	}
 }
